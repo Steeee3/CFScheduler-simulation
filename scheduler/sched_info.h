@@ -9,7 +9,7 @@
 typedef struct sched_info {
     task_state_t state;
 
-    uint64_t load;
+    uint32_t load;
     double load_contrib;
     
     uint32_t quantum;

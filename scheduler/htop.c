@@ -12,19 +12,35 @@ int created_tasks = 0;
 
 void *init();
 void set_default_sched_info(sched_info *sched);
+void cleanup(void)
+{
+    curs_set(1);
+    echo();
+    endwin();
 
-int main() {
+    system("stty sane");
+
+    pthread_mutex_destroy(&lock);
+    free(tasks);
+}
+
+int main()
+{
     pthread_t init_thread;
 
     pthread_mutex_init(&lock, NULL);
     pthread_create(&init_thread, NULL, init, NULL);
 
     initscr();
+    timeout(100);
     noecho();
     curs_set(0);
     keypad(stdscr, TRUE);
 
-    if (has_colors()) {
+    atexit(cleanup);
+
+    if (has_colors())
+    {
         start_color();
         use_default_colors();
 
@@ -33,11 +49,12 @@ int main() {
         init_pair(3, COLOR_WHITE, -1);
     }
 
-    while(1) {
+    while (1)
+    {
         erase();
 
-        mvprintw(0, 0, " PID  NAME  STATE      VRT       exec_ticks");
-        mvprintw(1, 0, "--------------------------------------------");
+        mvprintw(0, 0, " PID  NAME  STATE      VRT       LOAD       exec_ticks");
+        mvprintw(1, 0, "-------------------------------------------------------");
 
         pthread_mutex_lock(&lock);
         for (int i = 0; i < created_tasks; i++)
@@ -46,39 +63,48 @@ int main() {
 
             const char *state_str = state_to_string(tasks[i].sched.state);
 
-            if (has_colors()) {
-                if (tasks[i].sched.state == RUNNING) attron(COLOR_PAIR(1));
-                else if (tasks[i].sched.state == READY) attron(COLOR_PAIR(2));
-                else if (tasks[i].sched.state == WAITING) attron(COLOR_PAIR(3));
+            move(row, 0);
+            printw("%4d %-6s ", tasks[i].pid, tasks[i].name);
+
+            if (has_colors())
+            {
+                if (tasks[i].sched.state == RUNNING)
+                    attron(COLOR_PAIR(1));
+                else if (tasks[i].sched.state == READY)
+                    attron(COLOR_PAIR(2));
+                else if (tasks[i].sched.state == WAITING)
+                    attron(COLOR_PAIR(3));
             }
-
-            mvprintw(row, 0, "%4d %-6s %-10s %-9.2f %-15lu",
-                     tasks[i].pid,
-                     tasks[i].name,
-                     state_str,
-                     tasks[i].sched.vruntime,
-                     tasks[i].sched.exec_ticks);
-
-            if (has_colors()) {
+            printw("%-10s", state_str);
+            if (has_colors())
+            {
                 attroff(COLOR_PAIR(1));
                 attroff(COLOR_PAIR(2));
                 attroff(COLOR_PAIR(3));
             }
+
+            printw(" %-9.2f %-10u %-15llu",
+                   tasks[i].sched.vruntime,
+                   tasks[i].sched.load,
+                   (unsigned long long) tasks[i].sched.exec_ticks);
         }
         pthread_mutex_unlock(&lock);
 
         refresh();
 
-        // Simulate a delay
-        for (volatile long i = 0; i < 100000000; i++);
+        int ch = getch();
+        if (ch == 'q' || ch == 'Q')
+        {
+            break;
+        }
     }
 
-    endwin();
     return 0;
 }
 
-void *init() {
-    tasks = (task_t *) malloc(MAX_TASKS * sizeof(task_t));
+void *init()
+{
+    tasks = (task_t *)malloc(MAX_TASKS * sizeof(task_t));
 
     for (int i = 0; i < MAX_TASKS; i++)
     {
@@ -93,7 +119,8 @@ void *init() {
     }
 }
 
-void set_default_sched_info(sched_info *sched) {
+void set_default_sched_info(sched_info *sched)
+{
     sched->state = READY;
     sched->load = DEFAULT_LOAD;
     sched->load_contrib = 0.0;
@@ -102,11 +129,17 @@ void set_default_sched_info(sched_info *sched) {
     sched->exec_ticks = 0;
 }
 
-const char* state_to_string(task_state_t state) {
-    switch (state) {
-        case RUNNING: return "RUNNING";
-        case READY:   return "READY";
-        case WAITING: return "WAITING";
-        default:      return "UNKNOWN";
+const char *state_to_string(task_state_t state)
+{
+    switch (state)
+    {
+    case RUNNING:
+        return "RUNNING";
+    case READY:
+        return "READY";
+    case WAITING:
+        return "WAITING";
+    default:
+        return "UNKNOWN";
     }
 }
