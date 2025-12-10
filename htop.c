@@ -18,8 +18,6 @@ void cleanup(void)
     echo();
     endwin();
 
-    system("stty sane");
-
     pthread_mutex_destroy(&lock);
     free(tasks);
 }
