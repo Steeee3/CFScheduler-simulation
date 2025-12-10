@@ -33,11 +33,11 @@ void *htop()
 
     atexit(cleanup);
 
-    initscr();
-    timeout(100);
-    noecho();
-    curs_set(0);
-    keypad(stdscr, TRUE);
+    // initscr();
+    // timeout(100);
+    // noecho();
+    // curs_set(0);
+    // keypad(stdscr, TRUE);
 
     if (has_colors())
     {
@@ -97,10 +97,8 @@ void *htop()
         // {
         //     break;
         // }
-        printf("htop running...\n");
     }
 
-    cleanup();
     return;
 }
 

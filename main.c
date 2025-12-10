@@ -3,6 +3,7 @@
 
 #include "task/task_struct.h"
 #include "interrupt_handler/fork_exec.h"
+#include "interrupt_handler/tick.h"
 #include "./gui/htop.h"
 
 #define MAX_TASKS 10
@@ -29,6 +30,9 @@ void start_gui() {
 }
 
 void boot() {
+    pthread_t tick_thread;
+
+    pthread_create(&tick_thread, NULL, tick, NULL);
     create_custom_task(0, "IDLE", do_nothing);
     create_custom_task(1, "INIT", create_N_tasks);
 }

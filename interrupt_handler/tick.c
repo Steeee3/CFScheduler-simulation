@@ -1,7 +1,10 @@
+#include <stdio.h> //! remove
 #include "tick.h"
 
 void tick()
 {
-    //TODO: implement tick functionality
-    usleep(TIMER_PERIOD_US);
+    while(1) {
+        printf("Tick\n");
+        usleep(TIMER_PERIOD_US);
+    }
 }
