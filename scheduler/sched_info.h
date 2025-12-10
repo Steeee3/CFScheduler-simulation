@@ -15,6 +15,7 @@ typedef struct sched_info {
     uint32_t quantum;
     
     double vruntime;
+    double vruntime_coeff;
     
     uint64_t exec_ticks;
 } sched_info;

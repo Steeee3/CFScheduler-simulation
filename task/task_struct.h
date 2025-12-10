@@ -2,7 +2,7 @@
 #define TASK_STRUCT_H
 
 #include <sys/types.h>
-#include "sched_info.h"
+#include "../scheduler/sched_info.h"
 
 typedef struct task_struct {
     pid_t pid;
