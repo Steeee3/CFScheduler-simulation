@@ -11,7 +11,7 @@ void *do_nothing(void *arg)
         {
             sem_wait(&(task->running));
         }
-        else if (task->load != 1)
+        else
         {
             int free_buffer = rand_r(&seed) % WAKEUP_FREQUENCY;
 
@@ -20,19 +20,22 @@ void *do_nothing(void *arg)
                 wake_up();
             }
 
-            int wait = rand_r(&seed) % WAIT_FREQUENCY;
-            if (wait == 0)
+            if (task->load != 1)
             {
+                int wait = rand_r(&seed) % WAIT_FREQUENCY;
+                if (wait == 0)
+                {
 #ifdef DEBUG_THREAD
-                printf("WAITING\n");
-#endif
-                task->state = WAITING;
-            }
-            else
-            {
+                    printf("WAITING\n");
+    #endif
+                    task->state = WAITING;
+                }
+                else
+                {
 #ifdef DEBUG_THREAD
                 printf("RUNNING\n");
 #endif
+                }
             }
         }
         usleep(CPU_PERIOD_US);
