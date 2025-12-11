@@ -273,6 +273,31 @@ void schedule()
     }
 }
 
+void wake_up()
+{
+    if (sched->waiting_queue->waiting_tasks == 0)
+    {
+        return;
+    }
+
+    sched_task *ready_task = dequeue_waiting_task();
+
+    double current_vruntime = sched->running_queue->q.head != NULL ? MIN(sched->current->task->sched.vruntime, sched->running_queue->q.head->task->sched.vruntime)
+                                                                   : sched->current->task->sched.vruntime;
+    sched->running_queue->vruntime_min = MAX(sched->running_queue->vruntime_min, current_vruntime);
+    ready_task->task->sched.vruntime = MAX(ready_task->task->sched.vruntime, sched->running_queue->vruntime_min - LT / 2);
+
+    if (ready_task->task->sched.vruntime + WGR * ready_task->task->sched.load_contrib < sched->running_queue->vruntime_min)
+    {
+        context_switch(ready_task);
+    }
+    else
+    {
+        ready_task->task->sched.state = READY;
+        enqueue_task(ready_task->task);
+    }
+}
+
 void task_tick()
 {
     if (sched == NULL || sched->current == NULL)
@@ -289,7 +314,6 @@ void task_tick()
         return;
     }
 
-    // TODO: wakeup condition maybe
     if (sched->current->task->sched.delta >= sched->current->task->sched.quantum || sched->current->task->sched.state == WAITING)
     {
         sched_task *task_to_run = dequeue_task();
@@ -300,7 +324,7 @@ void task_tick()
 #endif
     }
 
-    double min = sched->running_queue->q.head != NULL ? MIN(sched->current->task->sched.vruntime, sched->running_queue->q.head->task->sched.vruntime)
-                                                      : sched->current->task->sched.vruntime;
-    sched->running_queue->vruntime_min = MAX(sched->running_queue->vruntime_min, min);
+    double current_vruntime = sched->running_queue->q.head != NULL ? MIN(sched->current->task->sched.vruntime, sched->running_queue->q.head->task->sched.vruntime)
+                                                                   : sched->current->task->sched.vruntime;
+    sched->running_queue->vruntime_min = MAX(sched->running_queue->vruntime_min, current_vruntime);
 }

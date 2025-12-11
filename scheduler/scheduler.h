@@ -66,6 +66,7 @@ void calc_created_sched_info(task_t *task, uint32_t load);
 void enqueue_task(task_t *task);
 sched_task *dequeue_task();
 void schedule();
+void wake_up();
 void task_tick();
 
 #endif
