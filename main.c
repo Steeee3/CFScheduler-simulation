@@ -35,8 +35,7 @@ void start_gui()
 
     sem_wait(&boot_order);
 
-    pthread_create(&gui, NULL, htop, NULL);
-    pthread_join(gui, NULL);
+    htop();
 }
 
 void boot()

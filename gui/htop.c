@@ -32,8 +32,6 @@ void *htop()
     sa.sa_flags = 0;
     sigaction(SIGINT, &sa, NULL);
 
-    atexit(cleanup);
-
     initscr();
     timeout(100);
     noecho();
@@ -148,7 +146,7 @@ void *htop()
     }
 
     cleanup();
-    return;
+    return NULL;
 }
 
 const char *state_to_string(task_state_t state)

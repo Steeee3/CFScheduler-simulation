@@ -98,6 +98,11 @@ void recompute_rq_tasks_parameters()
 {
     for (sched_task *t = sched->running_queue->q.head; t != NULL; t = t->next)
     {
+        //! remove this if
+        if (t->task->sched.state != READY)
+        {
+            t->task->sched.state = READY;
+        }
         t->task->sched.load_contrib = (double)t->task->sched.load / (double)sched->running_queue->total_load;
         t->task->sched.quantum = QUANTUM(sched->running_queue->ready_tasks, t->task->sched.load_contrib);
 

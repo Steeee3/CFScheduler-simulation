@@ -7,8 +7,8 @@
 #define TIMER_PERIOD_US 100000 // us
 
 #define CPU_PERIOD_US 100000 // us
-#define WAIT_FREQUENCY 4      // 1 in n chances
-#define WAKEUP_FREQUENCY 5    // 1 in n chances
+#define WAIT_FREQUENCY 5     // 1 in n chances
+#define WAKEUP_FREQUENCY 5   // 1 in n chances
 
 #define LT 6.0 // latency: s
 #define GR 7.5 // granularity: s
