@@ -18,6 +18,7 @@ typedef struct sched_info {
     double vruntime_coeff;
     
     uint64_t exec_ticks;
+    uint64_t delta;
 } sched_info;
 
 #endif

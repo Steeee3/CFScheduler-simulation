@@ -7,10 +7,16 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
-                "${file}",
+                "main.c",
+                "gui/htop.c",
+                "task/do_nothing.c",
+                "interrupt_handler/fork_exec.c",
+                "interrupt_handler/tick.c",
+                "scheduler/scheduler.c",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}",
-                "-lncurses"
+                "-lncurses",
+                "-lm"
             ],
             "options": {
                 "cwd": "${fileDirname}"

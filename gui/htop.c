@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <ncurses.h>
+
 #include "htop.h"
 
 volatile sig_atomic_t interrupted = 0;
 
-//TODO: refactor
+// TODO: refactor
 void cleanup(void)
 {
     curs_set(1);
@@ -24,7 +25,7 @@ void handle_sigint(int sig)
 void *htop()
 {
 
-    //Register signal handler for SIGINT
+    // Register signal handler for SIGINT
     struct sigaction sa;
     sa.sa_handler = handle_sigint;
     sigemptyset(&sa.sa_mask);
@@ -33,11 +34,11 @@ void *htop()
 
     atexit(cleanup);
 
-    // initscr();
-    // timeout(100);
-    // noecho();
-    // curs_set(0);
-    // keypad(stdscr, TRUE);
+    initscr();
+    timeout(100);
+    noecho();
+    curs_set(0);
+    keypad(stdscr, TRUE);
 
     if (has_colors())
     {
@@ -51,95 +52,87 @@ void *htop()
 
     while (!interrupted)
     {
-        // erase();
+        erase();
 
-        // mvprintw(0, 0, " PID  NAME  STATE      VRT       LOAD       exec_ticks");
-        // mvprintw(1, 0, "-------------------------------------------------------");
+        mvprintw(0, 0, " PID  NAME  STATE      VRT       LOAD       Q       exec_ticks       slice_ticks");
+        mvprintw(1, 0, "---------------------------------------------------------------------------------");
 
-        // pthread_mutex_lock(&lock);
-        // for (int i = 0; i < created_tasks; i++)
-        // {
-        //     int row = 2 + i;
+        int row = 2;
 
-        //     const char *state_str = state_to_string(tasks[i].sched.state);
+        if (sched->current != NULL)
+        {
+            move(row, 0);
+            printw("%4d %-6s ", sched->current->task.pid, sched->current->task.name);
 
-        //     move(row, 0);
-        //     printw("%4d %-6s ", tasks[i].pid, tasks[i].name);
+            attron(COLOR_PAIR(1));
+            printw("%-10s", "RUNNING");
+            attroff(COLOR_PAIR(1));
 
-        //     if (has_colors())
-        //     {
-        //         if (tasks[i].sched.state == RUNNING)
-        //             attron(COLOR_PAIR(1));
-        //         else if (tasks[i].sched.state == READY)
-        //             attron(COLOR_PAIR(2));
-        //         else if (tasks[i].sched.state == WAITING)
-        //             attron(COLOR_PAIR(3));
-        //     }
-        //     printw("%-10s", state_str);
-        //     if (has_colors())
-        //     {
-        //         attroff(COLOR_PAIR(1));
-        //         attroff(COLOR_PAIR(2));
-        //         attroff(COLOR_PAIR(3));
-        //     }
+            printw(" %-9.6f %-10u %-10u %-15llu %-10llu",
+                   sched->current->task.sched.vruntime,
+                   sched->current->task.sched.load,
+                   sched->current->task.sched.quantum,
+                   (unsigned long long)sched->current->task.sched.exec_ticks,
+                   (unsigned long long)sched->current->task.sched.delta);
+            row++;
+        }
 
-        //     printw(" %-9.2f %-10u %-15llu",
-        //            tasks[i].sched.vruntime,
-        //            tasks[i].sched.load,
-        //            (unsigned long long) tasks[i].sched.exec_ticks);
-        // }
-        // pthread_mutex_unlock(&lock);
+        for (sched_task *t = sched->running_queue->q.head; t != NULL; t = t->next)
+        {
+            const char *state_str = state_to_string(t->task.sched.state);
 
-        // refresh();
+            move(row, 0);
+            printw("%4d %-6s ", t->task.pid, t->task.name);
 
-        // int ch = getch();
-        // if (ch == 'q' || ch == 'Q')
-        // {
-        //     break;
-        // }
+            if (has_colors())
+            {
+                if (t->task.sched.state == READY)
+                    attron(COLOR_PAIR(2));
+                else if (t->task.sched.state == WAITING)
+                    attron(COLOR_PAIR(3));
+            }
+            printw("%-10s", state_str);
+            if (has_colors())
+            {
+                attroff(COLOR_PAIR(1));
+                attroff(COLOR_PAIR(2));
+                attroff(COLOR_PAIR(3));
+            }
+
+            printw(" %-9.6f %-10u %-10u %-15llu /",
+                   t->task.sched.vruntime,
+                   t->task.sched.load,
+                   t->task.sched.quantum,
+                   (unsigned long long)t->task.sched.exec_ticks);
+
+            row++;
+        }
+        move(row + 1, 0);
+        printw("Ticks: %lld", ticks_count);
+
+        refresh();
+
+        int ch = getch();
+        if (ch == 'q' || ch == 'Q')
+        {
+            break;
+        }
     }
 
     return;
 }
 
-// void *init()
-// {
-//     tasks = (task_t *)malloc(MAX_TASKS * sizeof(task_t));
-
-//     for (int i = 0; i < MAX_TASKS; i++)
-//     {
-//         tasks[i].pid = i + 1;
-//         snprintf(tasks[i].name, sizeof(tasks[i].name), "task%d", i + 1);
-
-//         set_default_sched_info(&tasks[i].sched);
-
-//         pthread_mutex_lock(&lock);
-//         created_tasks++;
-//         pthread_mutex_unlock(&lock);
-//     }
-// }
-
-// void set_default_sched_info(sched_info *sched)
-// {
-//     sched->state = READY;
-//     sched->load = DEFAULT_LOAD;
-//     sched->load_contrib = 0.0;
-//     sched->quantum = 100;
-//     sched->vruntime = 0.0;
-//     sched->exec_ticks = 0;
-// }
-
-// const char *state_to_string(task_state_t state)
-// {
-//     switch (state)
-//     {
-//     case RUNNING:
-//         return "RUNNING";
-//     case READY:
-//         return "READY";
-//     case WAITING:
-//         return "WAITING";
-//     default:
-//         return "UNKNOWN";
-//     }
-// }
+const char *state_to_string(task_state_t state)
+{
+    switch (state)
+    {
+    case RUNNING:
+        return "RUNNING";
+    case READY:
+        return "READY";
+    case WAITING:
+        return "WAITING";
+    default:
+        return "UNKNOWN";
+    }
+}
