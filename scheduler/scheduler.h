@@ -11,10 +11,6 @@
 #include "../task/task_struct.h"
 #include "../utils/utils.h"
 
-#define LT 6.0 // latency: s
-#define GR 7.5 // granularity: s
-#define WGR 1  // wakeup granularity: s
-
 #define QUANTUM(ready_tasks, load_contrib) ((uint32_t)ceil(PER(ready_tasks) * load_contrib))
 
 typedef struct sched_task

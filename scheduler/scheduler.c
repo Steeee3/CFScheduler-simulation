@@ -287,13 +287,14 @@ void wake_up()
     sched->running_queue->vruntime_min = MAX(sched->running_queue->vruntime_min, current_vruntime);
     ready_task->task->sched.vruntime = MAX(ready_task->task->sched.vruntime, sched->running_queue->vruntime_min - LT / 2);
 
+    ready_task->task->sched.state = READY;
+
     if (ready_task->task->sched.vruntime + WGR * ready_task->task->sched.load_contrib < sched->running_queue->vruntime_min)
     {
         context_switch(ready_task);
     }
     else
     {
-        ready_task->task->sched.state = READY;
         enqueue_task(ready_task->task);
     }
 }
