@@ -286,7 +286,6 @@ void task_tick()
 
     if (sched->running_queue->ready_tasks == 0)
     {
-        sched->current->task->sched.delta = 0;
         return;
     }
 
@@ -301,6 +300,7 @@ void task_tick()
 #endif
     }
 
-    sched->running_queue->vruntime_min = MAX(sched->running_queue->vruntime_min,
-                                             MIN(sched->current->task->sched.vruntime, sched->running_queue->q.head->task->sched.vruntime));
+    double min = sched->running_queue->q.head != NULL ? MIN(sched->current->task->sched.vruntime, sched->running_queue->q.head->task->sched.vruntime)
+                                                      : sched->current->task->sched.vruntime;
+    sched->running_queue->vruntime_min = MAX(sched->running_queue->vruntime_min, min);
 }
