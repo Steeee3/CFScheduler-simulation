@@ -15,6 +15,11 @@ void init_scheduler()
     sched->running_queue->ready_tasks = 0;
     sched->running_queue->total_load = 0;
     sched->running_queue->vruntime_min = 0.0;
+
+    sched->waiting_queue = (waitqueue *)malloc(sizeof(waitqueue));
+    sched->waiting_queue->q.head = NULL;
+    sched->waiting_queue->q.tail = NULL;
+    sched->waiting_queue->waiting_tasks = 0;
 }
 
 void calc_created_sched_info(task_t *task, uint32_t load)
@@ -45,6 +50,8 @@ void calc_created_sched_info(task_t *task, uint32_t load)
 
     task->sched.exec_ticks = 0;
     task->sched.delta = 0;
+
+    sem_init(&(task->sched.running), 0, 0);
 }
 
 void order_new_task()
@@ -58,7 +65,7 @@ void order_new_task()
     {
         sched_task *prev = t->prev;
 
-        if (t->task.sched.vruntime >= prev->task.sched.vruntime)
+        if (t->task->sched.vruntime >= prev->task->sched.vruntime)
         {
             return;
         }
@@ -91,16 +98,16 @@ void recompute_rq_tasks_parameters()
 {
     for (sched_task *t = sched->running_queue->q.head; t != NULL; t = t->next)
     {
-        t->task.sched.load_contrib = (double)t->task.sched.load / (double)sched->running_queue->total_load;
-        t->task.sched.quantum = QUANTUM(sched->running_queue->ready_tasks, t->task.sched.load_contrib);
+        t->task->sched.load_contrib = (double)t->task->sched.load / (double)sched->running_queue->total_load;
+        t->task->sched.quantum = QUANTUM(sched->running_queue->ready_tasks, t->task->sched.load_contrib);
 
 #ifdef DEBUG_SCHEDULER
-        printf("RECALC: contrib=%.6f, quantum=%u\n", t->task.sched.load_contrib, t->task.sched.quantum);
+        printf("RECALC: contrib=%.6f, quantum=%u\n", t->task->sched.load_contrib, t->task->sched.quantum);
 #endif
     }
 }
 
-void enqueue_task(task_t task)
+void enqueue_task(task_t *task)
 {
     pthread_mutex_lock(&runqueue_lock);
 
@@ -118,7 +125,7 @@ void enqueue_task(task_t task)
         new_rq_node->next = NULL;
         new_rq_node->prev = NULL;
 
-        sched->running_queue->vruntime_min = task.sched.vruntime;
+        sched->running_queue->vruntime_min = task->sched.vruntime;
     }
     else
     {
@@ -129,7 +136,7 @@ void enqueue_task(task_t task)
         sched->running_queue->q.tail = new_rq_node;
     }
     sched->running_queue->ready_tasks++;
-    sched->running_queue->total_load += task.sched.load;
+    sched->running_queue->total_load += task->sched.load;
     order_new_task();
     recompute_rq_tasks_parameters();
 
@@ -160,9 +167,69 @@ sched_task *dequeue_task()
     }
 
     sched->running_queue->ready_tasks--;
-    sched->running_queue->total_load -= node_to_dequeue->task.sched.load;
+    sched->running_queue->total_load -= node_to_dequeue->task->sched.load;
 
     recompute_rq_tasks_parameters();
+
+    pthread_mutex_unlock(&runqueue_lock);
+    return node_to_dequeue;
+}
+
+void enqueue_waiting_task(task_t *task)
+{
+    pthread_mutex_lock(&runqueue_lock);
+
+    sched_task *new_wq_node = (sched_task *)malloc(sizeof(sched_task));
+
+    new_wq_node->task = task;
+    new_wq_node->next = NULL;
+    new_wq_node->prev = NULL;
+
+    if (sched->waiting_queue->waiting_tasks == 0)
+    {
+        sched->waiting_queue->q.head = new_wq_node;
+        sched->waiting_queue->q.tail = new_wq_node;
+
+        new_wq_node->next = NULL;
+        new_wq_node->prev = NULL;
+    }
+    else
+    {
+        sched->waiting_queue->q.tail->next = new_wq_node;
+        new_wq_node->prev = sched->waiting_queue->q.tail;
+        new_wq_node->next = NULL;
+
+        sched->waiting_queue->q.tail = new_wq_node;
+    }
+    sched->waiting_queue->waiting_tasks++;
+
+    pthread_mutex_unlock(&runqueue_lock);
+}
+
+sched_task *dequeue_waiting_task()
+{
+    pthread_mutex_lock(&runqueue_lock);
+
+    if (sched->waiting_queue->waiting_tasks == 0)
+    {
+        return NULL;
+    }
+
+    sched_task *node_to_dequeue = sched->waiting_queue->q.head;
+    sched_task *new_head = node_to_dequeue->next;
+
+    if (new_head == NULL)
+    {
+        sched->waiting_queue->q.head = NULL;
+        sched->waiting_queue->q.tail = NULL;
+    }
+    else
+    {
+        new_head->prev = NULL;
+        sched->waiting_queue->q.head = new_head;
+    }
+
+    sched->waiting_queue->waiting_tasks--;
 
     pthread_mutex_unlock(&runqueue_lock);
     return node_to_dequeue;
@@ -172,18 +239,21 @@ void context_switch(sched_task *task_to_run)
 {
     if (sched->current != NULL)
     {
-        sched->current->task.sched.delta = 0;
-        if (sched->current->task.sched.state == RUNNING)
+        sched->current->task->sched.delta = 0;
+        if (sched->current->task->sched.state == RUNNING)
         {
-            sched->current->task.sched.state = READY;
+            sched->current->task->sched.state = READY;
             enqueue_task(sched->current->task);
         }
-        free(sched->current);
-        // TODO: waitqueue
+        else
+        {
+            enqueue_waiting_task(sched->current->task);
+        }
     }
 
     sched->current = task_to_run;
-    sched->current->task.sched.state = RUNNING;
+    sched->current->task->sched.state = RUNNING;
+    sem_post(&(sched->current->task->sched.running));
 }
 
 void schedule()
@@ -194,7 +264,7 @@ void schedule()
         return;
     }
 
-    if (sched->current == NULL || sched->current->task.sched.state == WAITING)
+    if (sched->current == NULL || sched->current->task->sched.state == WAITING)
     {
         sched_task *task_to_run = dequeue_task();
         context_switch(task_to_run);
@@ -208,23 +278,27 @@ void task_tick()
         return;
     }
 
-    sched->current->task.sched.exec_ticks++;
-    sched->current->task.sched.delta++;
-    sched->current->task.sched.vruntime += sched->current->task.sched.vruntime_coeff;
+    sched->current->task->sched.exec_ticks++;
+    sched->current->task->sched.delta++;
+    sched->current->task->sched.vruntime += sched->current->task->sched.vruntime_coeff;
 
     if (sched->running_queue->ready_tasks == 0)
     {
-        sched->current->task.sched.delta = 0;
+        sched->current->task->sched.delta = 0;
         return;
     }
 
     // TODO: wakeup condition maybe
-    if (sched->current->task.sched.delta >= sched->current->task.sched.quantum)
+    if (sched->current->task->sched.delta >= sched->current->task->sched.quantum || sched->current->task->sched.state == WAITING)
     {
         sched_task *task_to_run = dequeue_task();
         context_switch(task_to_run);
+#ifdef DEBUG_THREAD
+        printf("--------------------------");
+        printf("THREAD %d\n", sched->current->task->pid);
+#endif
     }
 
     sched->running_queue->vruntime_min = MAX(sched->running_queue->vruntime_min,
-                                             MIN(sched->current->task.sched.vruntime, sched->running_queue->q.head->task.sched.vruntime));
+                                             MIN(sched->current->task->sched.vruntime, sched->running_queue->q.head->task->sched.vruntime));
 }

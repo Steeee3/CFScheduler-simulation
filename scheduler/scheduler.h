@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 #include "../interrupt_handler/tick.h"
 #include "../task/task_struct.h"
@@ -18,7 +19,7 @@
 
 typedef struct sched_task
 {
-    task_t task;
+    task_t *task;
     struct sched_task *next;
     struct sched_task *prev;
 } sched_task;
@@ -38,9 +39,17 @@ typedef struct runqueue
     double vruntime_min;
 } runqueue;
 
+typedef struct waitqueue
+{
+    queue q;
+
+    int waiting_tasks;
+} waitqueue;
+
 typedef struct scheduler
 {
     runqueue *running_queue;
+    waitqueue *waiting_queue;
     sched_task *current;
 } scheduler;
 
@@ -54,7 +63,7 @@ static inline double PER(int ready_tasks)
 
 void init_scheduler();
 void calc_created_sched_info(task_t *task, uint32_t load);
-void enqueue_task(task_t task);
+void enqueue_task(task_t *task);
 sched_task *dequeue_task();
 void schedule();
 void task_tick();

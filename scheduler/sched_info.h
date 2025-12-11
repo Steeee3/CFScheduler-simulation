@@ -2,12 +2,14 @@
 #define SCHED_INFO_H
 
 #include <stdint.h>
+#include <semaphore.h>
+
 #include "task_info.h"
 
 #define DEFAULT_LOAD 1024u
 
 typedef struct sched_info {
-    task_state_t state;
+    _Atomic task_state_t state;
 
     uint32_t load;
     double load_contrib;
@@ -19,6 +21,8 @@ typedef struct sched_info {
     
     uint64_t exec_ticks;
     uint64_t delta;
+
+    sem_t running;
 } sched_info;
 
 #endif

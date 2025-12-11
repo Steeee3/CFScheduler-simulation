@@ -15,14 +15,14 @@ pthread_mutex_t cpu;
 sem_t boot_order;
 
 void boot();
-void *create_N_tasks();
+void *create_N_tasks(void *arg);
 void start_gui();
 
 int main()
 {
     sem_init(&boot_order, 0, 0);
     boot();
-    #ifndef DEBUG_SCHEDULER
+    #ifndef DEBUG_THREAD
     start_gui();
     #endif
 
@@ -54,12 +54,12 @@ void boot()
 
     schedule();
 
-    #ifdef DEBUG_SCHEDULER
+    #ifdef DEBUG_THREAD
     pthread_join(tick_thread, NULL);
     #endif
 }
 
-void *create_N_tasks()
+void *create_N_tasks(void *arg)
 {
     for (int i = 0; i < MAX_TASKS; i++)
     {
@@ -68,5 +68,5 @@ void *create_N_tasks()
         snprintf(name, sizeof(name), "task%d", i + 1);
         fork_exec(name);
     }
-    do_nothing();
+    do_nothing(arg);
 }

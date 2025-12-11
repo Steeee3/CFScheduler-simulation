@@ -11,7 +11,7 @@
 
 static pid_t next_pid = 2; // Start from 2, as 0 and 1 are reserved for IDLE and INIT tasks
 
-task_t fork_exec(const char *name);
-task_t create_custom_task(pid_t pid, const char *name, void *(*__start_routine)(void *), uint32_t load);
+task_t *fork_exec(const char *name);
+task_t *create_custom_task(pid_t pid, const char *name, void *(*__start_routine)(void *), uint32_t load);
 
 #endif

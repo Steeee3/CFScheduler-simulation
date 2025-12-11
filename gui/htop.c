@@ -62,33 +62,33 @@ void *htop()
         if (sched->current != NULL)
         {
             move(row, 0);
-            printw("%4d %-6s ", sched->current->task.pid, sched->current->task.name);
+            printw("%4d %-6s ", sched->current->task->pid, sched->current->task->name);
 
             attron(COLOR_PAIR(1));
             printw("%-10s", "RUNNING");
             attroff(COLOR_PAIR(1));
 
             printw(" %-9.6f %-10u %-10u %-15llu %-10llu",
-                   sched->current->task.sched.vruntime,
-                   sched->current->task.sched.load,
-                   sched->current->task.sched.quantum,
-                   (unsigned long long)sched->current->task.sched.exec_ticks,
-                   (unsigned long long)sched->current->task.sched.delta);
+                   sched->current->task->sched.vruntime,
+                   sched->current->task->sched.load,
+                   sched->current->task->sched.quantum,
+                   (unsigned long long)sched->current->task->sched.exec_ticks,
+                   (unsigned long long)sched->current->task->sched.delta);
             row++;
         }
 
         for (sched_task *t = sched->running_queue->q.head; t != NULL; t = t->next)
         {
-            const char *state_str = state_to_string(t->task.sched.state);
+            const char *state_str = state_to_string(t->task->sched.state);
 
             move(row, 0);
-            printw("%4d %-6s ", t->task.pid, t->task.name);
+            printw("%4d %-6s ", t->task->pid, t->task->name);
 
             if (has_colors())
             {
-                if (t->task.sched.state == READY)
+                if (t->task->sched.state == READY)
                     attron(COLOR_PAIR(2));
-                else if (t->task.sched.state == WAITING)
+                else if (t->task->sched.state == WAITING)
                     attron(COLOR_PAIR(3));
             }
             printw("%-10s", state_str);
@@ -100,10 +100,38 @@ void *htop()
             }
 
             printw(" %-9.6f %-10u %-10u %-15llu /",
-                   t->task.sched.vruntime,
-                   t->task.sched.load,
-                   t->task.sched.quantum,
-                   (unsigned long long)t->task.sched.exec_ticks);
+                   t->task->sched.vruntime,
+                   t->task->sched.load,
+                   t->task->sched.quantum,
+                   (unsigned long long)t->task->sched.exec_ticks);
+
+            row++;
+        }
+        for (sched_task *t = sched->waiting_queue->q.head; t != NULL; t = t->next)
+        {
+            const char *state_str = state_to_string(t->task->sched.state);
+
+            move(row, 0);
+            printw("%4d %-6s ", t->task->pid, t->task->name);
+
+            if (has_colors())
+            {
+                if (t->task->sched.state == WAITING)
+                    attron(COLOR_PAIR(3));
+            }
+            printw("%-10s", state_str);
+            if (has_colors())
+            {
+                attroff(COLOR_PAIR(1));
+                attroff(COLOR_PAIR(2));
+                attroff(COLOR_PAIR(3));
+            }
+
+            printw(" %-9.6f %-10u %-10u %-15llu /",
+                   t->task->sched.vruntime,
+                   t->task->sched.load,
+                   t->task->sched.quantum,
+                   (unsigned long long)t->task->sched.exec_ticks);
 
             row++;
         }
