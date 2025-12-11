@@ -11,7 +11,7 @@ void *do_nothing(void *arg)
         {
             sem_wait(&(task->running));
         }
-        else
+        else if (task->load != 1)
         {
             int waiting_chance = rand_r(&seed) % 5;
             if (waiting_chance == 0)

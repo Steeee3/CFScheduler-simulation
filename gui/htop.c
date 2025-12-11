@@ -147,6 +147,7 @@ void *htop()
         }
     }
 
+    cleanup();
     return;
 }
 
