@@ -149,6 +149,7 @@ sched_task *dequeue_task()
 
     if (sched->running_queue->ready_tasks == 0)
     {
+        pthread_mutex_unlock(&runqueue_lock);
         return NULL;
     }
 
@@ -212,6 +213,7 @@ sched_task *dequeue_waiting_task()
 
     if (sched->waiting_queue->waiting_tasks == 0)
     {
+        pthread_mutex_unlock(&runqueue_lock);
         return NULL;
     }
 
